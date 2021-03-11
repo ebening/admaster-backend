@@ -1,0 +1,29 @@
+<named-query name="StructureData.loadInboxInfo">
+  <query>SELECT SD
+		  FROM StructureData SD,
+		  	   StructureDataHisory SDH,
+		  	   WorkflowConfig WC
+		 WHERE SD.dataId = SDH.dataId
+		   AND SDH.active = 1
+		   AND SDH.workFlowConfig.workflowConfigId = WC.workflowConfigId
+		   AND (
+		   		-- QUE LA ETAPA NO TENGA OWNER
+		   		((SELECT COUNT(*) TOTAL FROM StageConfigProfile ISCP WHERE ISCP.stageConfigId = WC.nextStageConfig) = 0)
+		   		OR
+		   		-- QUE LA ETAPA CORRESPONDA A MI PERFIL
+		   		((SELECT COUNT(*) TOTAL
+				  FROM StageConfigProfile ISCP,
+				  	   UsuariosPerfiles IUP
+				 WHERE ISCP.profileId = WC.nextStageConfig
+				   AND ISCP.PROFILE_ID = IUP.perfilesId
+				   AND IUP.usuariosId = ?1) > 0)
+				OR
+				-- QUE SEA ADMINISTRADOR DE LA APLICACION
+				((SELECT COUNT(*)
+		  			FROM UsuariosPerfiles
+		 		   WHERE usuariosId = ?1
+		   			 AND perfilesId IN (SELECT valor FROM Parametros WHERE nombre = 'idPerfilAdministrador')) > 0)
+		   	   )
+		ORDER BY SD.dataId DESC
+  	</query>
+</named-query>
